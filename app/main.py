@@ -8,6 +8,7 @@ import requests
 from fastapi import Body, FastAPI
 import json
 from fastapi import FastAPI, File, UploadFile
+from fastapi.responses import JSONResponse
 app = FastAPI()
 
 class User(BaseModel):
@@ -106,4 +107,27 @@ async def create_upload_file(response: Response,xrayfile: bytes = File(...), Aut
     ]
     # logger.info("requesting neuralgenie api for fetching kl-grading")
     response_kl = requests.request("POST", neural_genie_url, data=payload, files=files)
-    return response_kl.json()
+
+    if response_kl.status_code == 200:
+       return response_kl.json()
+    else:
+       return JSONResponse(status_code=400, content=response_kl.json())
+
+@app.post("/neuralgenie/apis/extract-features")
+def extract_features(response: Response,xrayfile: bytes = File(...), Authorize: AuthJWT = Depends()):
+    # Authorize.jwt_required()
+    # client_id = Authorize.get_jwt_subject()
+    # response = requests.post("http://192.168.1.159:8000/client/subcriptions" , data={"client_id":client_id})
+    # if response.status_code!= 200:
+    #         raise HTTPException(status_code=401,detail=response.json().get('message'))
+    neural_genie_url = "http://192.168.1.153:8001/neuralgenie/apis/extract-features/"
+    payload={}
+    files=[
+    ('xrayfile',xrayfile)
+    ]
+    response_kl = requests.request("POST", neural_genie_url, data=payload, files=files)
+
+    if response_kl.status_code == 200:
+       return response_kl.json()
+    else:
+       return JSONResponse(status_code=400, content=response_kl.json())
