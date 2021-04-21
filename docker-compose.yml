@@ -14,4 +14,5 @@ services:
       - DB_NAME=gm_orgnisation
       - DB_USER=gm_orgnisation
       - DB_PASS=Gini789mind
+      - 
     restart: unless-stopped

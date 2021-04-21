@@ -67,31 +67,31 @@ def refresh(Authorize: AuthJWT = Depends()):
     new_access_token = Authorize.create_access_token(subject=current_user)
     return {"access_token": new_access_token}
 
-# Endpoint for revoking the current users access token
-@app.delete('/access-revoke')
-def access_revoke(Authorize: AuthJWT = Depends()):
-    Authorize.jwt_required()
+# # Endpoint for revoking the current users access token
+# @app.delete('/access-revoke')
+# def access_revoke(Authorize: AuthJWT = Depends()):
+#     Authorize.jwt_required()
 
-    jti = Authorize.get_raw_jwt()['jti']
-    denylist.add(jti)
-    return {"detail":"Access token has been revoke"}
+#     jti = Authorize.get_raw_jwt()['jti']
+#     denylist.add(jti)
+#     return {"detail":"Access token has been revoke"}
 
-# Endpoint for revoking the current users refresh token
-@app.delete('/refresh-revoke')
-def refresh_revoke(Authorize: AuthJWT = Depends()):
-    Authorize.jwt_refresh_token_required()
-    jti = Authorize.get_raw_jwt()['jti']
-    denylist.add(jti)
-    return {"detail":"Refresh token has been revoke"}
+# # Endpoint for revoking the current users refresh token
+# @app.delete('/refresh-revoke')
+# def refresh_revoke(Authorize: AuthJWT = Depends()):
+#     Authorize.jwt_refresh_token_required()
+#     jti = Authorize.get_raw_jwt()['jti']
+#     denylist.add(jti)
+#     return {"detail":"Refresh token has been revoke"}
 
-# A token in denylist will not be able to access this any more
-@app.get('/authorise')
-async def protected(request: Request, Authorize: AuthJWT = Depends()):
-    Authorize.jwt_required()
-    client_id = Authorize.get_jwt_subject()
-    print("dddd")
-    #print(response.json())
-    return "s"
+# # A token in denylist will not be able to access this any more
+# @app.get('/authorise')
+# async def protected(request: Request, Authorize: AuthJWT = Depends()):
+#     Authorize.jwt_required()
+#     client_id = Authorize.get_jwt_subject()
+#     print("dddd")
+#     #print(response.json())
+#     return "s"
 
 @app.post("/neuralgenie/predict")
 async def create_upload_file(response: Response,xrayfile: bytes = File(...), Authorize: AuthJWT = Depends()):
@@ -111,7 +111,7 @@ async def create_upload_file(response: Response,xrayfile: bytes = File(...), Aut
     if response_kl.status_code == 200:
        return response_kl.json()
     else:
-       return JSONResponse(status_code=400, content=response_kl.json())
+       return JSONResponse(status_code=response_kl.status_code, content=response_kl.data)
 
 @app.post("/neuralgenie/apis/extract-features")
 def extract_features(response: Response,xrayfile: bytes = File(...), Authorize: AuthJWT = Depends()):
@@ -130,4 +130,4 @@ def extract_features(response: Response,xrayfile: bytes = File(...), Authorize: 
     if response_kl.status_code == 200:
        return response_kl.json()
     else:
-       return JSONResponse(status_code=400, content=response_kl.json())
+       return JSONResponse(status_code=response_kl.status_code, content=response_kl.data)
