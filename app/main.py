@@ -51,7 +51,7 @@ def check_if_token_in_denylist(decrypted_token):
 
 @app.post('/login')
 def login(user: User, Authorize: AuthJWT = Depends(), x_request_id:str = Header(None)):
-    response = requests.post("http://192.168.1.159:8000/client/auth" , data={"client_uid":user.client_key, "client_secret":user.client_secret},headers={"x_request_id":x_request_id})
+    response = requests.post("http://192.168.1.159:8000/client/auth" , data={"client_key":user.client_key, "client_secret":user.client_secret},headers={"x_request_id":x_request_id})
     if response.status_code== 401:
             logger.debug("{0} Bad client_key or client_secret".format(x_request_id))
             raise HTTPException( status_code=401,detail="Bad client_key or client_secret")
@@ -64,7 +64,7 @@ def login(user: User, Authorize: AuthJWT = Depends(), x_request_id:str = Header(
     access_token = Authorize.create_access_token(subject=client_id)
     refresh_token = Authorize.create_refresh_token(subject=client_id)
     logger.debug("{0} login successful".format(x_request_id))
-    return {"access_token": access_token, "refresh_token": refresh_token, "is_subscribed":is_subscribed}
+    return {"access_token": access_token, "refresh_token": refresh_token, "subscription_detail": response.json()['subscription_detail']}
 
 # Standard refresh endpoint. Token in denylist will not
 # be able to access this endpoint
@@ -80,6 +80,7 @@ async def create_upload_file(response: Response,xrayfile: bytes = File(...), Aut
     Authorize.jwt_required()
     client_id = Authorize.get_jwt_subject()
     response = requests.post("http://192.168.1.159:8000/client/subcriptions" , data={"client_id":client_id})
+    print(response.status_code,"DDDDDDdd")
     if response.status_code!= 200:
             raise HTTPException(status_code=401,detail=response.json().get('message'))
     neural_genie_url = "https://fusion1.genieminds.com/neuralgenie/apis/predict/"
@@ -88,17 +89,20 @@ async def create_upload_file(response: Response,xrayfile: bytes = File(...), Aut
     ('xrayfile',xrayfile)
     ]
     response_kl = requests.request("POST", neural_genie_url, data=payload, files=files, headers={"x_request_id":x_request_id})
-    if response_kl.status_code == [200, 400]:
-       return response_kl.json()
+    if response_kl.status_code == 400:
+        return JSONResponse(status_code=response_kl.status_code, content=response_kl.json())
+    if response_kl.status_code  in [200, 400]:
+       return JSONResponse(status_code=response_kl.status_code, content=response_kl.json())
     else:
-       return JSONResponse(status_code=response_kl.status_code, content=response_kl.data)
+       return JSONResponse(status_code=response_kl.status_code, content=response_kl.text)
 
 @app.post("/neuralgenie/apis/extract-features")
 def extract_features(response: Response,xrayfile: bytes = File(...), Authorize: AuthJWT = Depends(), x_request_id:str = Header(None)):
     Authorize.jwt_required()
     client_id = Authorize.get_jwt_subject()
     response = requests.post("http://192.168.1.159:8000/client/subcriptions", data={"client_id":client_id}, headers={"x_request_id":x_request_id})
-    if response.status_code!= 200:
+    print(response.status_code)
+    if response.status_code != 200:
         logger.debug("{0} {1}".format(x_request_id, response.json().get('message')))
         raise HTTPException(status_code=401,detail=response.json().get('message'))
     neural_genie_url = "http://192.168.1.153:8001/neuralgenie/apis/extract-features/"
@@ -109,6 +113,6 @@ def extract_features(response: Response,xrayfile: bytes = File(...), Authorize: 
     response_kl = requests.request("POST", neural_genie_url, data=payload, files=files, headers={"x_request_id":x_request_id})
     if response_kl.status_code in [200, 400]:
         logger.debug("{0} {1}".format(x_request_id, "request for extract-feature was successful"))
-        return response_kl.json()
+        return JSONResponse(status_code=response_kl.status_code, content=response_kl.json())
     else:
         return JSONResponse(status_code=response_kl.status_code, content=response_kl.text)
