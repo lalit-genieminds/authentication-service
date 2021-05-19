@@ -71,9 +71,10 @@ def login(user: User, Authorize: AuthJWT = Depends(), x_request_id:str = Header(
 @app.post('/refresh')
 def refresh(Authorize: AuthJWT = Depends()):
     Authorize.jwt_refresh_token_required()
-    current_user = Authorize.get_jwt_subject()
-    new_access_token = Authorize.create_access_token(subject=current_user)
-    return {"access_token": new_access_token}
+    client_id = Authorize.get_jwt_subject()
+    response = requests.post("http://192.168.1.159:8000/client/subcriptions", data={"client_id":client_id})
+    new_access_token = Authorize.create_access_token(subject=client_id)
+    return {"access_token": new_access_token, "subscription_detail": response.json()['subscription_detail']}
 
 @app.post("/neuralgenie/apis/predict")
 async def create_upload_file(response: Response,xrayfile: bytes = File(...), Authorize: AuthJWT = Depends(), x_request_id:str = Header(None)):
